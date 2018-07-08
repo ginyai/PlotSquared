@@ -34,6 +34,7 @@ import org.spongepowered.api.event.network.ClientConnectionEvent;
 import org.spongepowered.api.event.world.ExplosionEvent;
 import org.spongepowered.api.event.world.ExplosionEvent.Detonate;
 import org.spongepowered.api.text.Text;
+import org.spongepowered.api.util.Tristate;
 import org.spongepowered.api.world.World;
 
 import java.util.*;
@@ -289,7 +290,7 @@ public class MainListener {
     public void onInteract(InteractBlockEvent event) {
         Player player = SpongeUtil.getCause(event.getCause(), Player.class);
         if (player == null) {
-            event.setCancelled(true);
+            cancelInteract(event);
             return;
         }
         BlockSnapshot block = event.getTargetBlock();
@@ -306,7 +307,7 @@ public class MainListener {
         PlotPlayer pp = SpongeUtil.getPlayer(player);
         if (plot == null) {
             if (!Permissions.hasPermission(pp, C.PERMISSION_ADMIN_INTERACT_ROAD, true)) {
-                event.setCancelled(true);
+                cancelInteract(event);
                 return;
             }
             return;
@@ -316,7 +317,7 @@ public class MainListener {
                 return;
             }
             MainUtil.sendMessage(pp, C.NO_PERMISSION_EVENT, C.PERMISSION_ADMIN_INTERACT_UNOWNED);
-            event.setCancelled(true);
+            cancelInteract(event);
             return;
         }
         if (plot.isAdded(pp.getUUID()) || Permissions.hasPermission(pp, C.PERMISSION_ADMIN_INTERACT_OTHER)) {
@@ -328,7 +329,16 @@ public class MainListener {
                 return;
             }
             MainUtil.sendMessage(pp, C.NO_PERMISSION_EVENT, C.PERMISSION_ADMIN_INTERACT_OTHER);
-            event.setCancelled(true);
+            cancelInteract(event);
+            return;
+        }
+    }
+
+    private void cancelInteract(InteractBlockEvent event){
+        event.setCancelled(true);
+        if(event instanceof InteractBlockEvent.Secondary){
+            ((InteractBlockEvent.Secondary) event).setUseBlockResult(Tristate.FALSE);
+            ((InteractBlockEvent.Secondary) event).setUseItemResult(Tristate.FALSE);
         }
     }
 
