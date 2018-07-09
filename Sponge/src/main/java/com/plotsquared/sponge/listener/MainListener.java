@@ -2,6 +2,7 @@ package com.plotsquared.sponge.listener;
 
 import com.intellectualcrafters.plot.PS;
 import com.intellectualcrafters.plot.config.C;
+import com.intellectualcrafters.plot.config.Settings;
 import com.intellectualcrafters.plot.flag.Flags;
 import com.intellectualcrafters.plot.object.*;
 import com.intellectualcrafters.plot.util.*;
@@ -11,13 +12,13 @@ import com.plotsquared.sponge.object.SpongePlayer;
 import com.plotsquared.sponge.util.SpongeUtil;
 import org.spongepowered.api.block.BlockSnapshot;
 import org.spongepowered.api.block.BlockState;
-import org.spongepowered.api.data.Transaction;
-import org.spongepowered.api.entity.EntityTypes;
+import org.spongepowered.api.entity.Entity;
+import org.spongepowered.api.entity.Item;
 import org.spongepowered.api.entity.explosive.Explosive;
 import org.spongepowered.api.entity.living.Ambient;
+import org.spongepowered.api.entity.living.Hostile;
 import org.spongepowered.api.entity.living.Living;
 import org.spongepowered.api.entity.living.animal.Animal;
-import org.spongepowered.api.entity.living.monster.Monster;
 import org.spongepowered.api.entity.living.player.Player;
 import org.spongepowered.api.entity.vehicle.Boat;
 import org.spongepowered.api.entity.vehicle.minecart.Minecart;
@@ -149,105 +150,148 @@ public class MainListener {
         }
     }
 
-    @Listener
+    @Listener(order = Order.FIRST,beforeModifications = true)
     public void onSpawnEntity(SpawnEntityEvent event) {
-        event.filterEntities(entity -> {
-            if (entity instanceof Player) {
-                return true;
-            }
-            Location loc = SpongeUtil.getLocation(entity);
-            Plot plot = loc.getPlot();
-            if (plot == null) {
-                return !loc.isPlotRoad();
-            }
-            //        Player player = this.<Player> getCause(event.getCause());
-            // TODO selectively cancel depending on spawn reason
-            // - Not sure if possible to get spawn reason (since there are no callbacks)
-            //        if (player != null && !plotworld.SPAWN_EGGS) {
-            //            return false;
-            //            return true;
-            //        }
+        event.filterEntities(this::filterEntity);
+    }
 
-            if (entity.getType() == EntityTypes.ITEM) {
-                return plot.getFlag(Flags.ITEM_DROP).or(true);
-            }
-            int[] mobs = null;
-            if (entity instanceof Living) {
-                if (!loc.getPlotArea().MOB_SPAWNING) {
-                    return false;
-                }
-                com.google.common.base.Optional<Integer> mobCap = plot.getFlag(Flags.MOB_CAP);
-                if (mobCap.isPresent()) {
-                    Integer cap = mobCap.get();
-                    if (cap == 0) {
-                        return false;
-                    }
-                    mobs = plot.countEntities();
-                    if (mobs[3] >= cap) {
-                        return false;
-                    }
-                }
-                if (entity instanceof Ambient || entity instanceof Animal) {
-                    com.google.common.base.Optional<Integer> animalFlag = plot.getFlag(Flags.ANIMAL_CAP);
-                    if (animalFlag.isPresent()) {
-                        int cap = animalFlag.get();
-                        if (cap == 0) {
-                            return false;
-                        }
-                        if (mobs == null) {
-                            mobs = plot.countEntities();
-                        }
-                        if (mobs[1] >= cap) {
-                            return false;
-                        }
-                    }
-                } else if (entity instanceof Monster) {
-                    com.google.common.base.Optional<Integer> monsterFlag = plot.getFlag(Flags.HOSTILE_CAP);
-                    if (monsterFlag.isPresent()) {
-                        int cap = monsterFlag.get();
-                        if (cap == 0) {
-                            return false;
-                        }
-                        if (mobs == null) {
-                            mobs = plot.countEntities();
-                        }
-                        if (mobs[2] >= cap) {
-                            return false;
-                        }
-                    }
-                }
-                return true;
-            } else if (entity instanceof Minecart || entity instanceof Boat) {
-                com.google.common.base.Optional<Integer> vehicleFlag = plot.getFlag(Flags.VEHICLE_CAP);
-                if (vehicleFlag.isPresent()) {
-                    int cap = vehicleFlag.get();
-                    if (cap == 0) {
-                        return false;
-                    }
-                    mobs = plot.countEntities();
-                    if (mobs[4] >= cap) {
-                        return false;
-                    }
-                }
-            }
-            com.google.common.base.Optional<Integer> entityCap = plot.getFlag(Flags.ENTITY_CAP);
-            if (entityCap.isPresent()) {
-                Integer cap = entityCap.get();
-                if (cap == 0) {
-                    return false;
-                }
-                if (mobs == null) {
-                    mobs = plot.countEntities();
-                }
-                if (mobs[0] >= cap) {
-                    return false;
-                }
-            }
-            if (entity instanceof Explosive) {
-                entity.setCreator(plot.owner);
-            }
+    private boolean filterEntity(Entity entity){
+        if(entity instanceof Player){
             return true;
-        });
+        }
+
+        Location loc = SpongeUtil.getLocation(entity);
+        PlotArea area = loc.getPlotArea();
+        if(area == null){
+            return true;
+        }else {
+            if(entity instanceof Item){
+                Plot plot = area.getPlotAbs(loc);
+                if(loc.isPlotRoad()){
+                    return !Settings.Enabled_Components.KILL_ROAD_ITEMS;
+                }
+//                if(plot.getOwners().isEmpty()){
+//                    return area.MISC_SPAWN_UNOWNED;
+//                }
+//                checkEntity(entity,plot,Flags.ENTITY_CAP);
+                return plot.getFlag(Flags.ITEM_DROP).or(true);
+            }else{
+                Plot plot = area.getOwnedPlot(loc);
+                if(plot == null){
+                    return false;
+                }
+//                if (entity instanceof Explosive) {
+//                    entity.setCreator(plot.owner);
+//                }
+                if(entity instanceof Living){
+                    if(!area.MOB_SPAWNING){
+                        return false;
+                    }
+                    if(entity instanceof Hostile){
+                        return checkEntity(plot, Flags.HOSTILE_CAP, Flags.ENTITY_CAP, Flags.MOB_CAP);
+                    }else if(entity instanceof Ambient || entity instanceof Animal) {
+                        return checkEntity(plot, Flags.ANIMAL_CAP, Flags.ENTITY_CAP, Flags.MOB_CAP);
+                    }else {
+                        return checkEntity(plot, Flags.ENTITY_CAP, Flags.MOB_CAP);
+                    }
+                }else if (entity instanceof Minecart || entity instanceof Boat){
+                    return checkEntity(plot, Flags.VEHICLE_CAP, Flags.ENTITY_CAP);
+                }else {
+                    return checkEntity(plot, Flags.ENTITY_CAP);
+                }
+            }
+        }
+    }
+
+    private static boolean checkEntity(Plot plot, IntegerFlag... flags) {
+        if (Settings.Done.RESTRICT_BUILDING && Flags.DONE.isSet(plot)) {
+            return false;
+        }
+        int[] mobs = null;
+        for (IntegerFlag flag : flags) {
+            int i;
+            switch (flag.getName()) {
+                case "entity-cap":
+                    i = 0;
+                    break;
+                case "mob-cap":
+                    i = 3;
+                    break;
+                case "hostile-cap":
+                    i = 2;
+                    break;
+                case "animal-cap":
+                    i = 1;
+                    break;
+                case "vehicle-cap":
+                    i = 4;
+                    break;
+                case "misc-cap":
+                    i = 5;
+                    break;
+                default:
+                    i = 0;
+            }
+            int cap = plot.getFlag(flag, Integer.MAX_VALUE);
+            if (cap == Integer.MAX_VALUE) {
+                continue;
+            }
+            if (cap == 0) {
+                return false;
+            }
+            if (mobs == null) {
+                mobs = plot.countEntities();
+            }
+            if (mobs[i] >= cap) {
+                plot.setMeta("EntityCount", mobs);
+                plot.setMeta("EntityCountTime", System.currentTimeMillis());
+                return false;
+            }
+        }
+        if (mobs != null) {
+            for (IntegerFlag flag : flags) {
+                int i;
+                switch (flag.getName()) {
+                    case "entity-cap":
+                        i = 0;
+                        break;
+                    case "mob-cap":
+                        i = 3;
+                        break;
+                    case "hostile-cap":
+                        i = 2;
+                        break;
+                    case "animal-cap":
+                        i = 1;
+                        break;
+                    case "vehicle-cap":
+                        i = 4;
+                        break;
+                    case "misc-cap":
+                        i = 5;
+                        break;
+                    default:
+                        i = 0;
+                }
+                mobs[i]++;
+            }
+            plot.setMeta("EntityCount", mobs);
+            plot.setMeta("EntityCountTime", System.currentTimeMillis());
+        }
+        return true;
+    }
+
+    @Listener(order = Order.FIRST,beforeModifications = true)
+    public void onBread(BreedEntityEvent.Breed event){
+        Entity entity = event.getOffspringEntity();
+        Location location = SpongeUtil.getLocation(entity);
+        PlotArea area = location.getPlotArea();
+        if(area == null){
+            return;
+        }
+        if(!area.SPAWN_BREEDING){
+            event.setCancelled(true);
+        }
     }
 
     public void onNotifyNeighborBlock(NotifyNeighborBlockEvent event) {
