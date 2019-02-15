@@ -107,8 +107,7 @@ public class SpongeMain implements IPlotMain {
 
     @Listener
     public void onPreInitialize(GamePreInitializationEvent event) {
-        //getLogger().info("The metrics section in PlotSquared is ignored in favor of the actual metrics reporter configurations.");
-        //this.stats.start();
+        getLogger().info("The metrics section in PlotSquared is ignored in favor of the actual metrics reporter configurations.");
     }
 
     @Listener
