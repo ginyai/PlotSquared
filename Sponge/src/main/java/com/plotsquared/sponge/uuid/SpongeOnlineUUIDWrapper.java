@@ -25,7 +25,7 @@ public class SpongeOnlineUUIDWrapper extends UUIDWrapper {
 
     @Override
     public UUID getUUID(PlotPlayer player) {
-        return ((SpongePlayer) player).player.getUniqueId();
+        return player.getUUID();
     }
     
     @Override

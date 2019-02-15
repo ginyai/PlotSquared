@@ -143,7 +143,7 @@ public class SpongeChatManager extends ChatManager<Text.Builder> {
         if (player instanceof ConsolePlayer || !Settings.Chat.INTERACTIVE) {
             player.sendMessage(plotMessage.$(this).build().toPlain());
         } else {
-            ((SpongePlayer) player).player.sendMessage(plotMessage.$(this).build());
+            ((SpongePlayer) player).getPlayer().sendMessage(plotMessage.$(this).build());
         }
     }
 

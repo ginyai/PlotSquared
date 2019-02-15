@@ -61,7 +61,7 @@ public class SpongeInventoryUtil extends InventoryUtil {
         }
         inv.player.deleteMeta("inventory");
         final SpongePlayer sp = (SpongePlayer) inv.player;
-        sp.player.closeInventory();
+        sp.getPlayer().closeInventory();
     }
 
     @Override
@@ -70,7 +70,7 @@ public class SpongeInventoryUtil extends InventoryUtil {
             return;
         }
         final SpongePlayer sp = (SpongePlayer) inv.player;
-        final Player player = sp.player;
+        final Player player = sp.getPlayer();
         player.getOpenInventory().get();
         throw new UnsupportedOperationException("NOT IMPLEMENTED YET");
 
@@ -90,7 +90,7 @@ public class SpongeInventoryUtil extends InventoryUtil {
     @Override
     public PlotItemStack[] getItems(final PlotPlayer player) {
         final SpongePlayer sp = (SpongePlayer) player;
-        sp.player.getInventory();
+        sp.getPlayer().getInventory();
         new ArrayList<PlotItemStack>();
 
         throw new UnsupportedOperationException("NOT IMPLEMENTED YET");
@@ -104,7 +104,7 @@ public class SpongeInventoryUtil extends InventoryUtil {
             return false;
         }
         final SpongePlayer sp = (SpongePlayer) inv.player;
-        final Player player = sp.player;
+        final Player player = sp.getPlayer();
         if (player.isViewingInventory()) {
             final CarriedInventory<? extends Carrier> inventory = player.getInventory();
             return inv.getTitle().equals(inventory.getName().getId()); // TODO getId()

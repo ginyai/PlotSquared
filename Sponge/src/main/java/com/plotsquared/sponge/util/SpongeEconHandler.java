@@ -69,7 +69,7 @@ public class SpongeEconHandler extends EconHandler {
     public boolean hasPermission(String world, String player, String perm) {
         SpongePlayer obj = (SpongePlayer) UUIDHandler.getPlayer(player);
         if (obj != null) {
-            return obj.player.hasPermission(perm);
+            return obj.getPlayer().hasPermission(perm);
         }
         // TODO offline
         return false;

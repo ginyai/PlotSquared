@@ -170,7 +170,7 @@ public class SpongeUtil extends WorldUtil {
 
     public static Player getPlayer(PlotPlayer player) {
         if (player instanceof SpongePlayer) {
-            return ((SpongePlayer) player).player;
+            return Sponge.getServer().getPlayer(player.getUUID()).orElse(null);
         }
         return null;
     }
