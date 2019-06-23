@@ -410,7 +410,7 @@ public class SpongeLocalQueue extends BasicLocalBlockQueue<char[]> {
     @Override
     public final void regenChunk(int x, int z) {
         World worldObj = getSpongeWorld();
-        throw new UnsupportedOperationException("NOT SUPPORTED");
+        worldObj.regenerateChunk(x, 0, z);
     }
 
     @Override
