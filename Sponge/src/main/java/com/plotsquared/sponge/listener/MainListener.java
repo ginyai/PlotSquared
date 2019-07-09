@@ -27,6 +27,7 @@ import org.spongepowered.api.event.Order;
 import org.spongepowered.api.event.block.ChangeBlockEvent;
 import org.spongepowered.api.event.block.InteractBlockEvent;
 import org.spongepowered.api.event.block.NotifyNeighborBlockEvent;
+import org.spongepowered.api.event.cause.EventContextKeys;
 import org.spongepowered.api.event.entity.BreedEntityEvent;
 import org.spongepowered.api.event.entity.MoveEntityEvent;
 import org.spongepowered.api.event.entity.SpawnEntityEvent;
@@ -430,9 +431,21 @@ public class MainListener {
     @Listener(order = Order.FIRST, beforeModifications = true)
     public void onBlockPre(ChangeBlockEvent.Pre event) {
         Player player = SpongeUtil.getCause(event.getCause(), Player.class);
+        boolean isLiquidFlow = event.getContext().get(EventContextKeys.LIQUID_FLOW).isPresent();
         for(org.spongepowered.api.world.Location<World> location:event.getLocations()){
             Location loc = SpongeUtil.getLocation(location.getExtent().getName(),location);
+            Plot plot = loc.getPlot();
             if (!loc.isPlotArea()) {
+                continue;
+            }
+            if(isLiquidFlow) {
+                if(plot == null) {
+                    event.setCancelled(true);
+                    return;
+                } else if (Flags.LIQUID_FLOW.isFalse(plot)){
+                    event.setCancelled(true);
+                    return;
+                }
                 continue;
             }
             if(player==null){
@@ -440,7 +453,6 @@ public class MainListener {
                 return;
             }
             PlotPlayer pp = SpongeUtil.getPlayer(player);
-            Plot plot = loc.getPlot();
             if (plot == null) {
                 if (!Permissions.hasPermission(pp, C.PERMISSION_ADMIN_DESTROY_ROAD)) {
                     MainUtil.sendMessage(pp, C.PERMISSION_ADMIN_DESTROY_ROAD);
