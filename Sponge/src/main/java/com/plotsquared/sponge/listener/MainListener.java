@@ -109,7 +109,7 @@ public class MainListener {
             if (plot.equals(user.getLocation().getPlot())) {
                 toSend = newMessage;
             } else if (Permissions.hasPermission(user, C.PERMISSION_COMMANDS_CHAT)) {
-                ((SpongePlayer) user).getPlayer().sendMessage(message);
+                ((SpongePlayer) user).getPlayer().ifPresent(player1 -> player1.sendMessage(message));
                 continue;
             } else {
                 continue;
@@ -125,7 +125,7 @@ public class MainListener {
                 }
                 components.add(SpongeUtil.getText(part));
             }
-            ((SpongePlayer) user).getPlayer().sendMessage(Text.join(components));
+            ((SpongePlayer) user).getPlayer().ifPresent(player1 -> player1.sendMessage(Text.join(components)));
         }
         //event.setMessage(null);
     }

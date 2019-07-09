@@ -22,7 +22,7 @@ plugins {
 
 dependencies {
     compile project(':Core')
-    compile 'org.spongepowered:spongeapi:7.1.0'
+    compile 'org.spongepowered:spongecommon:1.12.2-7.1.6:dev'
 //    compile 'net.minecrell.mcstats:statslite-sponge:0.2.2'
 
     implementation project (':Core')
