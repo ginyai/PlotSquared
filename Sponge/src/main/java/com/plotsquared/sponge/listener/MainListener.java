@@ -28,6 +28,8 @@ import org.spongepowered.api.event.block.ChangeBlockEvent;
 import org.spongepowered.api.event.block.InteractBlockEvent;
 import org.spongepowered.api.event.block.NotifyNeighborBlockEvent;
 import org.spongepowered.api.event.cause.EventContextKeys;
+import org.spongepowered.api.event.cause.entity.spawn.SpawnType;
+import org.spongepowered.api.event.cause.entity.spawn.SpawnTypes;
 import org.spongepowered.api.event.entity.BreedEntityEvent;
 import org.spongepowered.api.event.entity.MoveEntityEvent;
 import org.spongepowered.api.event.entity.SpawnEntityEvent;
@@ -42,6 +44,7 @@ import org.spongepowered.api.world.World;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Predicate;
 
 @SuppressWarnings("Guava")
 public class MainListener {
@@ -153,10 +156,28 @@ public class MainListener {
 
     @Listener(order = Order.FIRST,beforeModifications = true)
     public void onSpawnEntity(SpawnEntityEvent event) {
-        event.filterEntities(this::filterEntity);
+        Optional<SpawnType> optionalSpawnType = event.getContext().get(EventContextKeys.SPAWN_TYPE);
+        Predicate<PlotArea> areaSettings;
+        if(optionalSpawnType.isPresent()) {
+            SpawnType spawnType = optionalSpawnType.get();
+            if(spawnType == SpawnTypes.BREEDING) {
+                areaSettings = plotArea -> plotArea.SPAWN_BREEDING;
+            } else if (spawnType == SpawnTypes.SPAWN_EGG){
+                 areaSettings = plotArea -> plotArea.SPAWN_EGGS;
+            } else if (spawnType == SpawnTypes.MOB_SPAWNER) {
+                areaSettings = plotArea -> plotArea.MOB_SPAWNER_SPAWNING;
+            } else if (spawnType == SpawnTypes.CUSTOM) {
+                areaSettings = plotArea -> plotArea.SPAWN_CUSTOM;
+            } else {
+                areaSettings = plotArea -> true;
+            }
+        } else {
+            areaSettings = plotArea -> true;
+        }
+        event.filterEntities(entity -> filterEntity(entity, areaSettings));
     }
 
-    private boolean filterEntity(Entity entity){
+    private boolean filterEntity(Entity entity, Predicate<PlotArea> areaSettings){
         if(entity instanceof Player){
             return true;
         }
@@ -165,7 +186,10 @@ public class MainListener {
         PlotArea area = loc.getPlotArea();
         if(area == null){
             return true;
-        }else {
+        } else {
+            if(!areaSettings.test(area)) {
+                return false;
+            }
             if(entity instanceof Item){
                 Plot plot = area.getPlotAbs(loc);
                 if(loc.isPlotRoad()){
@@ -179,15 +203,12 @@ public class MainListener {
             }else{
                 Plot plot = area.getOwnedPlot(loc);
                 if(plot == null){
-                    return false;
+                    return area.MOB_SPAWNING;
                 }
 //                if (entity instanceof Explosive) {
 //                    entity.setCreator(plot.owner);
 //                }
                 if(entity instanceof Living){
-                    if(!area.MOB_SPAWNING){
-                        return false;
-                    }
                     if(entity instanceof Hostile){
                         return checkEntity(plot, Flags.HOSTILE_CAP, Flags.ENTITY_CAP, Flags.MOB_CAP);
                     }else if(entity instanceof Ambient || entity instanceof Animal) {

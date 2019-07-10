@@ -30,8 +30,10 @@ import org.spongepowered.api.data.property.block.SolidCubeProperty;
 import org.spongepowered.api.data.value.mutable.ListValue;
 import org.spongepowered.api.entity.Entity;
 import org.spongepowered.api.entity.living.player.Player;
+import org.spongepowered.api.entity.living.player.User;
 import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.event.cause.EventContext;
+import org.spongepowered.api.event.cause.EventContextKeys;
 import org.spongepowered.api.text.Text;
 import org.spongepowered.api.text.serializer.TextSerializers;
 import org.spongepowered.api.text.translation.Translation;
@@ -65,10 +67,18 @@ public class SpongeUtil extends WorldUtil {
     }
 
     public static <T> T getCause(Cause cause, Class<T> clazz) {
-        Optional<?> root = Optional.of(cause.root());
-        Object source = root.get();
-        if (clazz.isInstance(source)) {
-            return (T) source;
+        Object root = cause.root();
+        if (clazz.isInstance(root)) {
+            return (T) root;
+        }
+        Optional<User> optionalOwner = cause.getContext().get(EventContextKeys.OWNER);
+        if (optionalOwner.isPresent()) {
+            User user = optionalOwner.get();
+            if (clazz.isInstance(user)) {
+                return (T) user;
+            } else if (clazz == Player.class) {
+                return (T) user.getPlayer().orElse(null);
+            }
         }
         return null;
     }
