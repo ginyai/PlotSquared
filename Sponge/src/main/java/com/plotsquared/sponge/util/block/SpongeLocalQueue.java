@@ -1,5 +1,6 @@
 package com.plotsquared.sponge.util.block;
 
+import com.flowpowered.math.vector.Vector3i;
 import com.intellectualcrafters.plot.object.PlotBlock;
 import com.intellectualcrafters.plot.object.PseudoRandom;
 import com.intellectualcrafters.plot.util.MainUtil;
@@ -33,6 +34,7 @@ import org.spongepowered.api.world.biome.BiomeType;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Map;
 
 public class SpongeLocalQueue extends BasicLocalBlockQueue<char[]> {
 
@@ -434,6 +436,10 @@ public class SpongeLocalQueue extends BasicLocalBlockQueue<char[]> {
         net.minecraft.world.World nmsWorld = ((net.minecraft.world.World) worldObj);
         org.spongepowered.api.world.Chunk spongeChunk = (org.spongepowered.api.world.Chunk) getChunk(worldObj, lc.getX(), lc.getZ());
         Chunk nmsChunk = (Chunk) spongeChunk;
+        BlockPos.PooledMutableBlockPos blockPos = BlockPos.PooledMutableBlockPos.retain();
+        Vector3i blockMin = spongeChunk.getBlockMin();
+        int xMin = blockMin.getX();
+        int zMin = blockMin.getZ();
         char[][] ids = ((CharLocalChunk) lc).blocks;
         for (int layer = 0; layer < 16; layer++) {
             char[] array = ids[layer];
@@ -458,7 +464,11 @@ public class SpongeLocalQueue extends BasicLocalBlockQueue<char[]> {
                         int x = cacheX[j];
                         int y = cacheY[j];
                         int z = cacheZ[j];
+                        blockPos.setPos(x+xMin, (layer << 4) + y, z+zMin);
                         section.set(x, y, z, Blocks.AIR.getDefaultState());
+                        if (nmsChunk.getTileEntityMap().containsKey(blockPos)) {
+                            nmsWorld.removeTileEntity(blockPos);
+                        }
                         continue;
                     default:
                         int id = combinedId >> 4;
@@ -478,6 +488,7 @@ public class SpongeLocalQueue extends BasicLocalBlockQueue<char[]> {
                 }
             }
         }
+        blockPos.release();
         refreshChunk(nmsChunk.x, nmsChunk.z);
     }
 
