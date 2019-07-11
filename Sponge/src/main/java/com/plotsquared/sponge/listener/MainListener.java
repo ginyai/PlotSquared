@@ -39,6 +39,7 @@ import org.spongepowered.api.event.world.ExplosionEvent;
 import org.spongepowered.api.event.world.ExplosionEvent.Detonate;
 import org.spongepowered.api.text.Text;
 import org.spongepowered.api.util.Tristate;
+import org.spongepowered.api.world.LocatableBlock;
 import org.spongepowered.api.world.World;
 
 import java.util.*;
@@ -452,8 +453,9 @@ public class MainListener {
     @Listener(order = Order.FIRST, beforeModifications = true)
     public void onBlockPre(ChangeBlockEvent.Pre event) {
         Player player = SpongeUtil.getCause(event.getCause(), Player.class);
+        LocatableBlock block = SpongeUtil.getCause(event.getCause(), LocatableBlock.class);
         boolean isLiquidFlow = event.getContext().get(EventContextKeys.LIQUID_FLOW).isPresent();
-        for(org.spongepowered.api.world.Location<World> location:event.getLocations()){
+        for(org.spongepowered.api.world.Location<World> location:event.getLocations()) {
             Location loc = SpongeUtil.getLocation(location.getExtent().getName(),location);
             Plot plot = loc.getPlot();
             if (!loc.isPlotArea()) {
@@ -469,9 +471,20 @@ public class MainListener {
                 }
                 continue;
             }
-            if(player==null){
-                event.setCancelled(true);
-                return;
+            if(player == null) {
+                if (plot == null) {
+                    event.setCancelled(true);
+                    return;
+                } else if (block != null) {
+                    if(SpongeUtil.getLocation(block.getLocation()).getPlot() == plot) {
+                        continue;
+                    } else {
+                        event.setCancelled(true);
+                        return;
+                    }
+                } else {
+                    continue;
+                }
             }
             PlotPlayer pp = SpongeUtil.getPlayer(player);
             if (plot == null) {
